@@ -2,7 +2,8 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { ensureSeeded } from "./seed";
 
-const port = Number(process.env.PORT ?? 4000);
+const rawPort = process.env.PORT ?? "4000";
+const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);

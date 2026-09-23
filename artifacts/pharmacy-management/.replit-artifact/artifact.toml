@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Pharmacy Management System"
+description = "A responsive pharmacy operations app for managing medicines, inventory, purchases, sales, customers, suppliers, reports, and role-based access with persistent PostgreSQL data."
+version = "1.0.0"
+id = "artifacts/pharmacy-management"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23236
+
+[services.development]
+run = "pnpm --filter @workspace/pharmacy-management run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pharmacy-management", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/pharmacy-management/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23236"
+BASE_PATH = "/"

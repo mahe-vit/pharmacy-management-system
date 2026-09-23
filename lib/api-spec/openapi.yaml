@@ -1,0 +1,911 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: REST API for a pharmacy management system
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: dashboard
+  - name: medicines
+  - name: inventory
+  - name: purchases
+  - name: sales
+  - name: customers
+  - name: suppliers
+  - name: reports
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in to the pharmacy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "204":
+          description: Logged out
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get live dashboard metrics
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /dashboard/sales-chart:
+    get:
+      operationId: getSalesChart
+      tags: [dashboard]
+      summary: Get sales chart data
+      parameters:
+        - $ref: "#/components/parameters/Days"
+      responses:
+        "200":
+          description: Sales chart points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SalesChartPoint"
+  /medicines:
+    get:
+      operationId: listMedicines
+      tags: [medicines]
+      summary: List medicines
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, active, inactive, low_stock, expired, expiring]
+            default: all
+      responses:
+        "200":
+          description: Paginated medicines
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MedicinePage"
+    post:
+      operationId: createMedicine
+      tags: [medicines]
+      summary: Create a medicine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicineInput"
+      responses:
+        "201":
+          description: Created medicine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medicine"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /medicines/{id}:
+    get:
+      operationId: getMedicine
+      tags: [medicines]
+      summary: Get a medicine
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Medicine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MedicineDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateMedicine
+      tags: [medicines]
+      summary: Update a medicine
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicineUpdate"
+      responses:
+        "200":
+          description: Updated medicine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medicine"
+  /medicines/{id}/deactivate:
+    post:
+      operationId: deactivateMedicine
+      tags: [medicines]
+      summary: Deactivate a medicine
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Deactivated medicine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medicine"
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [medicines]
+      summary: List categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      summary: List inventory with batch status
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, healthy, low_stock, expired, expiring]
+            default: all
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated inventory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryPage"
+  /purchases:
+    get:
+      operationId: listPurchases
+      tags: [purchases]
+      summary: List purchases
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated purchases
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchasePage"
+    post:
+      operationId: createPurchase
+      tags: [purchases]
+      summary: Complete a purchase and increase inventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseInput"
+      responses:
+        "201":
+          description: Purchase completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Purchase"
+  /suppliers:
+    get:
+      operationId: listSuppliers
+      tags: [suppliers]
+      summary: List suppliers
+      parameters:
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Suppliers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+    post:
+      operationId: createSupplier
+      tags: [suppliers]
+      summary: Create supplier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierInput"
+      responses:
+        "201":
+          description: Created supplier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List customers
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated customers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerPage"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+  /customers/{id}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get customer and purchase history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Customer detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDetail"
+  /sales:
+    get:
+      operationId: listSales
+      tags: [sales]
+      summary: List sales
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated sales
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalePage"
+    post:
+      operationId: createSale
+      tags: [sales]
+      summary: Complete a sale using FEFO inventory deduction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleInput"
+      responses:
+        "201":
+          description: Sale completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "409":
+          description: Insufficient or expired stock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /sales/{id}:
+    get:
+      operationId: getSale
+      tags: [sales]
+      summary: Get sale detail
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Sale detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleDetail"
+  /sales/{id}/invoice:
+    get:
+      operationId: getSaleInvoice
+      tags: [sales]
+      summary: Get printable invoice data
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+  /reports/summary:
+    get:
+      operationId: getReportSummary
+      tags: [reports]
+      summary: Get sales, purchase, inventory and profit report
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+      responses:
+        "200":
+          description: Report summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportSummary"
+  /reports/export:
+    get:
+      operationId: exportReport
+      tags: [reports]
+      summary: Export a report as CSV
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [sales, purchases, inventory, expiry, profit]
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+      responses:
+        "200":
+          description: CSV report text
+          content:
+            text/csv:
+              schema:
+                type: string
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+    CategoryId:
+      name: categoryId
+      in: query
+      schema:
+        type: integer
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Days:
+      name: days
+      in: query
+      schema:
+        type: integer
+        enum: [7, 30, 90]
+        default: 30
+    DateFrom:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date
+    DateTo:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: ["string", "null"]
+      required: [error]
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        role:
+          type: string
+          enum: [ADMIN, PHARMACIST, STAFF]
+      required: [id, name, email, role]
+    LoginInput:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+      required: [email, password]
+    AuthSession:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+      required: [user]
+    Category:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        medicineCount: { type: integer }
+      required: [id, name, medicineCount]
+    MedicineInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        genericName: { type: string }
+        brand: { type: string }
+        manufacturer: { type: string }
+        categoryId: { type: integer }
+        dosageForm: { type: string }
+        strength: { type: string }
+        barcode: { type: string }
+        gstPercent: { type: number, minimum: 0, maximum: 100 }
+        prescriptionRequired: { type: boolean }
+        reorderLevel: { type: integer, minimum: 0 }
+        description: { type: string }
+        active: { type: boolean }
+      required: [name, categoryId, dosageForm, gstPercent, prescriptionRequired, reorderLevel, active]
+    MedicineUpdate:
+      allOf:
+        - $ref: "#/components/schemas/MedicineInput"
+    Medicine:
+      allOf:
+        - $ref: "#/components/schemas/MedicineInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            categoryName: { type: string }
+            stock: { type: integer }
+            inventoryValue: { type: number }
+            nearestExpiry: { type: ["string", "null"], format: date }
+            createdAt: { type: string, format: date-time }
+          required: [id, categoryName, stock, inventoryValue, nearestExpiry, createdAt]
+    Batch:
+      type: object
+      properties:
+        id: { type: integer }
+        batchNumber: { type: string }
+        manufacturingDate: { type: string, format: date }
+        expiryDate: { type: string, format: date }
+        purchasePrice: { type: number }
+        sellingPrice: { type: number }
+        mrp: { type: number }
+        quantity: { type: integer }
+        supplierName: { type: string }
+      required: [id, batchNumber, manufacturingDate, expiryDate, purchasePrice, sellingPrice, mrp, quantity, supplierName]
+    MedicineDetail:
+      allOf:
+        - $ref: "#/components/schemas/Medicine"
+        - type: object
+          properties:
+            batches:
+              type: array
+              items:
+                $ref: "#/components/schemas/Batch"
+          required: [batches]
+    MedicinePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Medicine"
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+      required: [items, page, pageSize, total]
+    InventoryItem:
+      type: object
+      properties:
+        medicine:
+          $ref: "#/components/schemas/Medicine"
+        batches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Batch"
+        status:
+          type: string
+          enum: [healthy, low_stock, expired, expiring]
+        daysUntilExpiry:
+          type: ["integer", "null"]
+      required: [medicine, batches, status, daysUntilExpiry]
+    InventoryPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryItem"
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+      required: [items, page, pageSize, total]
+    SupplierInput:
+      type: object
+      properties:
+        companyName: { type: string, minLength: 1 }
+        contactPerson: { type: string }
+        phone: { type: string }
+        email: { type: ["string", "null"], format: email }
+        address: { type: string }
+        gstNumber: { type: string }
+      required: [companyName, contactPerson, phone, address]
+    Supplier:
+      allOf:
+        - $ref: "#/components/schemas/SupplierInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            purchaseCount: { type: integer }
+            totalPurchased: { type: number }
+          required: [id, purchaseCount, totalPurchased]
+    PurchaseItemInput:
+      type: object
+      properties:
+        medicineId: { type: integer }
+        batchNumber: { type: string }
+        manufacturingDate: { type: string, format: date }
+        expiryDate: { type: string, format: date }
+        quantity: { type: integer, minimum: 1 }
+        purchasePrice: { type: number, minimum: 0 }
+        sellingPrice: { type: number, minimum: 0 }
+        mrp: { type: number, minimum: 0 }
+        gstPercent: { type: number, minimum: 0, maximum: 100 }
+      required: [medicineId, batchNumber, manufacturingDate, expiryDate, quantity, purchasePrice, sellingPrice, mrp, gstPercent]
+    PurchaseInput:
+      type: object
+      properties:
+        supplierId: { type: integer }
+        invoiceNumber: { type: string, minLength: 1 }
+        purchaseDate: { type: string, format: date }
+        notes: { type: string }
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PurchaseItemInput"
+      required: [supplierId, invoiceNumber, purchaseDate, items]
+    PurchaseItem:
+      allOf:
+        - $ref: "#/components/schemas/PurchaseItemInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            medicineName: { type: string }
+            lineTotal: { type: number }
+          required: [id, medicineName, lineTotal]
+    Purchase:
+      type: object
+      properties:
+        id: { type: integer }
+        invoiceNumber: { type: string }
+        purchaseDate: { type: string, format: date }
+        supplier:
+          $ref: "#/components/schemas/Supplier"
+        subtotal: { type: number }
+        gstTotal: { type: number }
+        total: { type: number }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseItem"
+        createdAt: { type: string, format: date-time }
+      required: [id, invoiceNumber, purchaseDate, supplier, subtotal, gstTotal, total, items, createdAt]
+    PurchasePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Purchase"
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+      required: [items, page, pageSize, total]
+    CustomerInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string }
+        email: { type: ["string", "null"], format: email }
+        address: { type: string }
+      required: [name, phone, address]
+    Customer:
+      allOf:
+        - $ref: "#/components/schemas/CustomerInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            purchaseCount: { type: integer }
+            totalSpent: { type: number }
+            lastPurchaseDate: { type: ["string", "null"], format: date-time }
+          required: [id, purchaseCount, totalSpent, lastPurchaseDate]
+    CustomerPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+      required: [items, page, pageSize, total]
+    CustomerDetail:
+      allOf:
+        - $ref: "#/components/schemas/Customer"
+        - type: object
+          properties:
+            sales:
+              type: array
+              items:
+                $ref: "#/components/schemas/Sale"
+          required: [sales]
+    SaleItemInput:
+      type: object
+      properties:
+        medicineId: { type: integer }
+        quantity: { type: integer, minimum: 1 }
+        discountPercent: { type: number, minimum: 0, maximum: 100 }
+      required: [medicineId, quantity, discountPercent]
+    SaleInput:
+      type: object
+      properties:
+        customerId: { type: ["integer", "null"] }
+        paymentMethod:
+          type: string
+          enum: [CASH, UPI, CARD]
+        discountAmount: { type: number, minimum: 0 }
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SaleItemInput"
+      required: [paymentMethod, discountAmount, items]
+    SaleItem:
+      allOf:
+        - $ref: "#/components/schemas/SaleItemInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            medicineName: { type: string }
+            batchNumber: { type: string }
+            unitPrice: { type: number }
+            gstAmount: { type: number }
+            lineTotal: { type: number }
+          required: [id, medicineName, batchNumber, unitPrice, gstAmount, lineTotal]
+    Sale:
+      type: object
+      properties:
+        id: { type: integer }
+        invoiceNumber: { type: string }
+        saleDate: { type: string, format: date-time }
+        customer:
+          oneOf:
+            - $ref: "#/components/schemas/Customer"
+            - type: "null"
+        subtotal: { type: number }
+        discountAmount: { type: number }
+        gstTotal: { type: number }
+        total: { type: number }
+        paymentMethod:
+          type: string
+          enum: [CASH, UPI, CARD]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SaleItem"
+      required: [id, invoiceNumber, saleDate, customer, subtotal, discountAmount, gstTotal, total, paymentMethod, items]
+    SaleDetail:
+      allOf:
+        - $ref: "#/components/schemas/Sale"
+        - type: object
+          properties:
+            cashier:
+              $ref: "#/components/schemas/User"
+          required: [cashier]
+    SalePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sale"
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+      required: [items, page, pageSize, total]
+    Invoice:
+      type: object
+      properties:
+        pharmacyName: { type: string }
+        pharmacyAddress: { type: string }
+        pharmacyPhone: { type: string }
+        sale:
+          $ref: "#/components/schemas/SaleDetail"
+      required: [pharmacyName, pharmacyAddress, pharmacyPhone, sale]
+    DashboardSummary:
+      type: object
+      properties:
+        todaySales: { type: integer }
+        todayRevenue: { type: number }
+        monthlyRevenue: { type: number }
+        transactionCount: { type: integer }
+        inventoryValue: { type: number }
+        lowStockCount: { type: integer }
+        expiredCount: { type: integer }
+        expiringCount: { type: integer }
+        lowStock:
+          type: array
+          items:
+            $ref: "#/components/schemas/Medicine"
+        recentSales:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sale"
+        topSelling:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopSellingMedicine"
+      required: [todaySales, todayRevenue, monthlyRevenue, transactionCount, inventoryValue, lowStockCount, expiredCount, expiringCount, lowStock, recentSales, topSelling]
+    SalesChartPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        revenue: { type: number }
+        transactions: { type: integer }
+      required: [date, revenue, transactions]
+    TopSellingMedicine:
+      type: object
+      properties:
+        medicineId: { type: integer }
+        medicineName: { type: string }
+        quantity: { type: integer }
+        revenue: { type: number }
+      required: [medicineId, medicineName, quantity, revenue]
+    ReportSummary:
+      type: object
+      properties:
+        salesRevenue: { type: number }
+        purchaseCost: { type: number }
+        profit: { type: number }
+        salesCount: { type: integer }
+        purchaseCount: { type: integer }
+        inventoryValue: { type: number }
+        expiredValue: { type: number }
+        expiringValue: { type: number }
+      required: [salesRevenue, purchaseCost, profit, salesCount, purchaseCount, inventoryValue, expiredValue, expiringValue]

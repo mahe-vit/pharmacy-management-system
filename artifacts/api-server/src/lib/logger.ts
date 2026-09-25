@@ -1,12 +1,34 @@
-import pino from "pino";
+type LogMethod = (...args: unknown[]) => void;
 
-export const logger = pino({
+const logger = {
   level: process.env.LOG_LEVEL || "info",
-  redact: [
-    "req.headers.authorization",
-    "req.headers.cookie",
-    "res.headers['set-cookie']",
-  ],
-});
 
+  info: ((...args: unknown[]) => {
+    console.log(...args);
+  }) as LogMethod,
+
+  error: ((...args: unknown[]) => {
+    console.error(...args);
+  }) as LogMethod,
+
+  warn: ((...args: unknown[]) => {
+    console.warn(...args);
+  }) as LogMethod,
+
+  debug: ((...args: unknown[]) => {
+    console.debug(...args);
+  }) as LogMethod,
+
+  trace: ((...args: unknown[]) => {
+    console.trace(...args);
+  }) as LogMethod,
+
+  fatal: ((...args: unknown[]) => {
+    console.error(...args);
+  }) as LogMethod,
+
+  child: (_bindings?: Record<string, unknown>) => logger,
+};
+
+export { logger };
 export default logger;
